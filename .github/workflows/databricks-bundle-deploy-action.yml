@@ -61,7 +61,7 @@ jobs:
     environment: ${{ inputs.environment }}
     steps:
       - name: install databricks bundles
-        run: pip install databricks-bundles==0.256.0
+        run: pip install databricks-bundles==0.275.0
 
       - name: Checkout current repository
         uses: actions/checkout@v4
