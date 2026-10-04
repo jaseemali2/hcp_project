@@ -3,6 +3,7 @@
 #
 # copy contents into resources/test_job.py
 from databricks.bundles.jobs import Job
+from globals.global_variables import env 
 
 
 test_job = Job.from_dict(
@@ -13,15 +14,27 @@ test_job = Job.from_dict(
                 "task_key": "tsk1",
                 "notebook_task": {
                     "notebook_path": "performance/pg.ipynb",
+                    "base_parameters": {
+                        "env": env,
+                    },
+                },
+                "job_cluster_key": "Job_cluster",
+            },
+        ],
+        "job_clusters": [
+            {
+                "job_cluster_key": "Job_cluster",
+                "new_cluster": {
+                    "spark_version": "17.3.x-scala2.13",
+                    "node_type_id": "Standard_DS3_v2",
+                    "data_security_mode": "SINGLE_USER",
+                    "runtime_engine": "STANDARD",
+                    "is_single_node": True,
                 },
             },
         ],
         "queue": {
             "enabled": True,
         },
-        # "run_as": {
-        #     "service_principal_name": "da1a3e69-c15b-4e1d-9aa6-cf15b3958825",
-        # },
-        "performance_target": "PERFORMANCE_OPTIMIZED",
     }
 )
