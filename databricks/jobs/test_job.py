@@ -3,7 +3,7 @@
 #
 # copy contents into resources/test_job.py
 from databricks.bundles.jobs import Job
-from globals.global_variables import env 
+# from globals.global_variables import env 
 
 
 test_job = Job.from_dict(
@@ -15,7 +15,7 @@ test_job = Job.from_dict(
                 "notebook_task": {
                     "notebook_path": "performance/pg.ipynb",
                     "base_parameters": {
-                        "env": env,
+                        "env": "dev",
                     },
                 },
                 "job_cluster_key": "Job_cluster",
