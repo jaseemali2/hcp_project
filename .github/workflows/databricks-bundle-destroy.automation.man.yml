@@ -58,7 +58,7 @@ jobs:
 
     steps:
       - name: Install Databricks Bundles
-        run: pip install databricks-bundles==0.256.0
+        run: pip install databricks-bundles==0.275.0
         shell: bash
 
       - name: Install Databricks CLI
