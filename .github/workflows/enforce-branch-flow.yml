@@ -1,0 +1,27 @@
+name: Enforce branch flow
+
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+    branches: [dev, qa, prod]
+
+jobs:
+  check-source-branch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate source branch
+        env:
+          BASE: ${{ github.base_ref }}
+          HEAD: ${{ github.head_ref }}
+        run: |
+          ok=0
+          case "$BASE" in
+            dev)  [[ "$HEAD" =~ ^feature/[^/]+/[^/]+$ ]] && ok=1; allowed="feature/<x>/<y>" ;;
+            qa)   [[ "$HEAD" == "dev" ]] && ok=1;               allowed="dev" ;;
+            prod) [[ "$HEAD" == "qa" ]]  && ok=1;               allowed="qa" ;;
+          esac
+          if [[ "$ok" != "1" ]]; then
+            echo "::error::PRs into '$BASE' must come from '$allowed' (got '$HEAD')."
+            exit 1
+          fi
+          echo "OK: $HEAD -> $BASE"
