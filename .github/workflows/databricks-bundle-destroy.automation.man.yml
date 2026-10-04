@@ -74,9 +74,6 @@ jobs:
           My_project_NAME=snocx
           My_project_NAME_UPPER="${My_project_NAME^^}"
 
-          # REGION="${ENVIRONMENT%%.*}"
-          # REGION_UPPER="${REGION^^}"
-
           ENV="${ENVIRONMENT##*.}"
           ENV_UPPER="${ENV^^}"
           ENV_UPPER_SHORT=${ENV_UPPER:0:1}
@@ -85,11 +82,10 @@ jobs:
           PERMISSIONS_LEVEL="${{ github.event.inputs['permissions-level'] }}"
 
           echo "My_project_NAME_UPPER=${My_project_NAME_UPPER}" >> $GITHUB_ENV
-          echo "REGION_UPPER=${REGION_UPPER}" >> $GITHUB_ENV
           echo "ENV=${ENV}" >> $GITHUB_ENV
           echo "ENV_UPPER=${ENV_UPPER}" >> $GITHUB_ENV
           echo "ENV_UPPER_SHORT=${ENV_UPPER_SHORT}" >> $GITHUB_ENV
-          echo "KEYVAULT_NAME=DAN-${REGION_UPPER}-${ENV_UPPER_SHORT}-KVT800-${My_project_NAME_UPPER}" >> $GITHUB_ENV
+          echo "KEYVAULT_NAME=DAN-${ENV_UPPER_SHORT}-KVT800-SNOCX2" >> $GITHUB_ENV
           echo "TRIGGER_PAUSE_STATUS=${TRIGGER_PAUSE_STATUS}" >> $GITHUB_ENV
           echo "PERMISSIONS_LEVEL=${PERMISSIONS_LEVEL}" >> $GITHUB_ENV
         shell: bash
@@ -115,11 +111,11 @@ jobs:
 
       - name: Set Databricks Variables
         run: |
-          DATABRICKS_WORKSPACE_NAME="DAN-${{ env.REGION_UPPER }}-${{ env.ENV_UPPER_SHORT }}-DBW800-${{ env.My_project_NAME_UPPER }}"
-          DATAPROCESSING_RESOURCE_GROUP_NAME="DAN-${{ env.REGION_UPPER }}-${{ env.ENV_UPPER_SHORT }}-RSG800-${{ env.My_project_NAME_UPPER }}"
+          DATABRICKS_WORKSPACE_NAME="DAN-${{ env.ENV_UPPER_SHORT }}-DBW800-${{ env.My_project_NAME_UPPER }}"
+          DATAPROCESSING_RESOURCE_GROUP_NAME="DAN-${{ env.ENV_UPPER_SHORT }}-RSG800-${{ env.My_project_NAME_UPPER }}"
           DATABRICKS_DOMAIN=$(az databricks workspace show --resource-group "${DATAPROCESSING_RESOURCE_GROUP_NAME}" --name "${DATABRICKS_WORKSPACE_NAME}" | jq -r '.workspaceUrl')
           DATABRICKS_HOST="https://${DATABRICKS_DOMAIN}"
-          DATABRICKS_ENV_ENGINEERING_GROUP="AAD-GAA-${{ env.REGION_UPPER }}-ONEHOUSE-${{ env.ENV_UPPER_SHORT }}-UG-My_project-${{ env.My_project_NAME_UPPER }}-DataEngineer"
+          DATABRICKS_ENV_ENGINEERING_GROUP="AAD-GAA-ONEHOUSE-${{ env.My_Project_NAME_UPPER }}-DataEngineer"
 
           echo "DATABRICKS_HOST=${DATABRICKS_HOST}" >> $GITHUB_ENV
           echo "DATABRICKS_WORKSPACE_NAME=${DATABRICKS_WORKSPACE_NAME}" >> $GITHUB_ENV
