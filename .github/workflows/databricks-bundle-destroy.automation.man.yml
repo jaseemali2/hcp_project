@@ -1,0 +1,166 @@
+name: Destroy Databricks Asset Bundle
+
+run-name: Destroy DAB | ${{ github.event.inputs.environment }} | databricksTarget-${{ github.event.inputs.databricks-target }} for ${{ github.ref_name }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        type: choice
+        description: "Environment"
+        required: true
+        default: "main"
+        options:
+          - "dev"
+          - "qa"
+          - "prod"
+
+      databricks-target:
+        type: choice
+        description: "Databricks target"
+        required: true
+        default: "development"
+        options:
+          - "development"
+          - "testing"
+          - "release"
+
+      trigger-pause-status:
+        type: choice
+        description: "Trigger pause status"
+        required: true
+        default: "PAUSED"
+        options:
+          - "PAUSED"
+          - "UNPAUSED"
+
+      permissions-level:
+        type: choice
+        description: "Permissions level for Databricks assets"
+        required: true
+        default: "CAN_MANAGE"
+        options:
+          - "CAN_MANAGE"
+          - "CAN_RUN"
+          - "CAN_VIEW"
+
+permissions:
+  actions: read
+  id-token: write
+  pull-requests: write
+  contents: write
+
+jobs:
+  dab-destroy:
+    name: DAB Destroy
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment }}
+
+    steps:
+      - name: Install Databricks Bundles
+        run: pip install databricks-bundles==0.275.0
+        shell: bash
+
+      - name: Install Databricks CLI
+        uses: databricks/setup-cli@main
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set Environment Variables
+        env:
+          ENVIRONMENT: ${{ github.event.inputs.environment }}
+        run: |
+          My_project_NAME=snocx
+          My_project_NAME_UPPER="${My_project_NAME^^}"
+
+          ENV="${ENVIRONMENT##*.}"
+          ENV_UPPER="${ENV^^}"
+          ENV_UPPER_SHORT=${ENV_UPPER:0:1}
+
+          TRIGGER_PAUSE_STATUS="${{ github.event.inputs['trigger-pause-status'] }}"
+          PERMISSIONS_LEVEL="${{ github.event.inputs['permissions-level'] }}"
+
+          echo "My_project_NAME_UPPER=${My_project_NAME_UPPER}" >> $GITHUB_ENV
+          echo "ENV=${ENV}" >> $GITHUB_ENV
+          echo "ENV_UPPER=${ENV_UPPER}" >> $GITHUB_ENV
+          echo "ENV_UPPER_SHORT=${ENV_UPPER_SHORT}" >> $GITHUB_ENV
+          echo "KEYVAULT_NAME=DAN-${ENV_UPPER_SHORT}-KVT800-SNOCX2" >> $GITHUB_ENV
+          echo "TRIGGER_PAUSE_STATUS=${TRIGGER_PAUSE_STATUS}" >> $GITHUB_ENV
+          echo "PERMISSIONS_LEVEL=${PERMISSIONS_LEVEL}" >> $GITHUB_ENV
+        shell: bash
+
+      - name: Login to Azure CLI
+        uses: azure/login@v2
+        with:
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+
+      - name: Retrieve Key Vault Secrets
+        id: keyvault
+        run: |
+          secrets=("databricks-sp-client-id databricks-sp-client-secret")
+          for secretName in ${secrets[@]}
+            do
+              value=$(az keyvault secret show --name $secretName --vault-name "${{ env.KEYVAULT_NAME}}" --query value --output tsv)
+              echo "::add-mask::$value"
+              echo "$secretName=$value" >> "$GITHUB_OUTPUT"
+            done
+        shell: bash
+
+      - name: Set Databricks Variables
+        run: |
+          DATABRICKS_WORKSPACE_NAME="DAN-${{ env.ENV_UPPER_SHORT }}-DBW800-${{ env.My_project_NAME_UPPER }}"
+          DATAPROCESSING_RESOURCE_GROUP_NAME="DAN-${{ env.ENV_UPPER_SHORT }}-RSG800-${{ env.My_project_NAME_UPPER }}"
+          DATABRICKS_DOMAIN=$(az databricks workspace show --resource-group "${DATAPROCESSING_RESOURCE_GROUP_NAME}" --name "${DATABRICKS_WORKSPACE_NAME}" | jq -r '.workspaceUrl')
+          DATABRICKS_HOST="https://${DATABRICKS_DOMAIN}"
+          DATABRICKS_ENV_ENGINEERING_GROUP="AAD-GAA-ONEHOUSE-${{ env.My_Project_NAME_UPPER }}-DataEngineer"
+
+          echo "DATABRICKS_HOST=${DATABRICKS_HOST}" >> $GITHUB_ENV
+          echo "DATABRICKS_WORKSPACE_NAME=${DATABRICKS_WORKSPACE_NAME}" >> $GITHUB_ENV
+          echo "DATAPROCESSING_RESOURCE_GROUP_NAME=${DATAPROCESSING_RESOURCE_GROUP_NAME}" >> $GITHUB_ENV
+          echo "DATABRICKS_DOMAIN=${DATABRICKS_DOMAIN}" >> $GITHUB_ENV
+          echo "DATABRICKS_ENV_ENGINEERING_GROUP=${DATABRICKS_ENV_ENGINEERING_GROUP}" >> $GITHUB_ENV
+          echo "DATABRICKS_CLIENT_ID=${{ steps.keyvault.outputs.databricks-sp-client-id }}" >> $GITHUB_ENV
+          echo "DATABRICKS_CLIENT_SECRET=${{ steps.keyvault.outputs.databricks-sp-client-secret }}" >> $GITHUB_ENV
+        shell: bash
+
+      - name: Replace Service Principal  ID in YAML Files
+        run: |
+          sed -i "s|DATABRICKS_SP_ID_PLACEHOLDER|${{ env.DATABRICKS_CLIENT_ID }}|g" databricks/*.yml
+        shell: bash
+
+      - name: Extract Git Branch
+        run: echo "BRANCH_NAME=${{ github.ref_name }}" >> $GITHUB_ENV
+        shell: bash
+
+      - name: Replace Branch in YAML Files
+        run: sed -i "s|GITHUB_BRANCH_DEPLOYMENT|${{ env.BRANCH_NAME }}|g" databricks/*.yml
+        shell: bash
+
+      - name: Replace Environment Variables in YAML Files
+        run: |
+          sed -i "s|DATABRICKS_ENV_ENGINEERING_GROUP|${{ env.DATABRICKS_ENV_ENGINEERING_GROUP }}|g" databricks/*.yml
+          sed -i "s|My_project_NAME_PLACEHOLDER|${{ env.My_project_NAME_UPPER }}|g" databricks/*.yml
+          sed -i "s|ENV_PLACEHOLDER|${{ env.ENV_UPPER }}|g" databricks/*.yml
+          sed -i "s|TRIGGER_PAUSE_STATUS_PLACEHOLDER|${{ env.TRIGGER_PAUSE_STATUS }}|g" databricks/*.yml
+          sed -i "s|PERMISSIONS_LEVEL_PLACEHOLDER|${{ env.PERMISSIONS_LEVEL }}|g" databricks/*.yml
+        shell: bash
+
+      - name: Fetch Starter Warehouse ID
+        run: |
+          STARTER_WAREHOUSE_ID=$(databricks warehouses list -o json | jq -r '.[] | select(.name == "Serverless Starter Warehouse") | .id')
+          echo "WAREHOUSE_ID=${STARTER_WAREHOUSE_ID}" >> $GITHUB_ENV
+        shell: bash
+
+      - name: Destroy Databricks Bundle
+        working-directory: ./databricks
+        env:
+          BUNDLE_VAR_warehouse_id: ${{ env.WAREHOUSE_ID }}
+          DATABRICKS_BUNDLE_ENV: ${{ inputs.databricks-target }}
+
+        run: |
+          databricks bundle destroy --auto-approve
+          databricks workspace delete /Workspace/bundles/${{env.BRANCH_NAME}} --recursive || true
+        shell: bash
