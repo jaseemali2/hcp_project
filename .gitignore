@@ -1,0 +1,55 @@
+# ====================================================================
+# Databricks Asset Bundle Files
+# ====================================================================
+# Ignore the hidden internal CLI state and cache directory
+.databricks/
+
+# Optional: Ignore the bundle-specific terraform state if generated locally
+.terraform/
+*.tfstate
+*.tfstate.backup
+
+# Optional: If you use a scratchpad/scratch folder for temporary testing
+# but want to keep the directory structure intact
+scratch/**
+!scratch/README.md
+
+# ====================================================================
+# Python & Environment Files (If using Python-based bundles)
+# ====================================================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+build/
+dist/
+wheels/
+*.whl
+
+# Virtual Environments
+.venv/
+venv/
+ENV/
+env/
+
+# Environment variables & secrets
+.env
+.env.*
+! .env.example
+
+# ====================================================================
+# IDE, Jupyter, and OS Metadata
+# ====================================================================
+# Code Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Jupyter Notebooks checkpoints
+.ipynb_checkpoints/
+
+# Operating System files
+.DS_Store
+Thumbs.db
