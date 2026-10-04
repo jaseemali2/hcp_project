@@ -28,9 +28,9 @@ test_job = Job.from_dict(
                     "spark_version": "17.3.x-scala2.13",
                     "node_type_id": "Standard_DS3_v2",
                     "kind": "CLASSIC_PREVIEW",
-                    "data_security_mode": "DATA_SECURITY_MODE_DEDICATED",
+                    "data_security_mode": "SINGLE_USER",\
+                    "num_workers": 0,
                     "runtime_engine": "STANDARD",
-                    "is_single_node": True,
                 },
             },
         ],
