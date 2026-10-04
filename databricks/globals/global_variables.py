@@ -9,7 +9,7 @@ BRONZE_CATALOG_NAME = f""
 
 STORAGE_ACCOUNT_MAP = {
     "dev": "",
-    "val": "",
+    "qa": "",
     "prod": "",
 }
 
@@ -25,7 +25,7 @@ match ENV:
         env = "dev"
  
 
-    case "val":
+    case "qa":
         SHARED_MULTI_NODE_CLUSTER_ID = ""
         SERVICE_PRINCIPAL_DBS = ""
         env = "qa"
