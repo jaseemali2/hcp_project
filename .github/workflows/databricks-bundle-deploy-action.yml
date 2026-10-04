@@ -153,6 +153,11 @@ jobs:
           sed -i "s|TRIGGER_PAUSE_STATUS_PLACEHOLDER|${{env.TRIGGER_PAUSE_STATUS}}|g" databricks/*.yml
           sed -i "s|PERMISSIONS_LEVEL_PLACEHOLDER|${{env.PERMISSIONS_LEVEL}}|g" databricks/*.yml
 
+      - name: Check Databricks auth
+        env:
+          DATABRICKS_AUTH_TYPE: oauth-m2m
+        run: databricks auth describe
+
       - name: Create Starter Warehouse ID variable
         run: |
           STARTER_WAREHOUSE_ID=$(databricks warehouses list -o json | jq -r '.[] | select(.name == "Serverless Starter Warehouse") | .id')
